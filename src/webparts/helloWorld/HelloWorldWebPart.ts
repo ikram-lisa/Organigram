@@ -1,51 +1,58 @@
-import { Version } from '@microsoft/sp-core-library';
-import {
-  IPropertyPaneConfiguration,
-  PropertyPaneTextField
-} from '@microsoft/sp-property-pane';
-import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
-import { IReadonlyTheme } from '@microsoft/sp-component-base';
-import * as strings from 'HelloWorldWebPartStrings';
-import { SPComponentLoader } from '@microsoft/sp-loader';
+import { Version } from "@microsoft/sp-core-library";
+import { IPropertyPaneConfiguration, PropertyPaneTextField } from "@microsoft/sp-property-pane";
+import { BaseClientSideWebPart } from "@microsoft/sp-webpart-base";
+import { IReadonlyTheme } from "@microsoft/sp-component-base";
+import * as strings from "HelloWorldWebPartStrings";
+import { SPComponentLoader } from "@microsoft/sp-loader";
+
 
 export interface IHelloWorldWebPartProps {
   description: string;
 }
 
+
 export default class HelloWorldWebPart extends BaseClientSideWebPart<IHelloWorldWebPartProps> {
-  private async _fetchSharePointData(): Promise<{ [department: string]: string[] }> {
-    const client = await this.context.msGraphClientFactory.getClient('3');
+  private async _fetchSharePointData(): Promise<{
+    [department: string]: { persons: string[]; content: string };
+  }> {
+    const client = await this.context.msGraphClientFactory.getClient("3");
     const response = await client
-      .api('/sites/vitsolutionseu.sharepoint.com,8b8f57f4-1451-4aed-bcaa-07be94d3c146,0b0a58f3-099f-4a1e-8fa7-6097fb9f555e/lists/1011b9bb-b822-4747-a10b-b3e1763ddcd4/items?$expand=fields&$select=id')
-      .version('v1.0')
+      .api(
+        "/sites/vitsolutionseu.sharepoint.com,8b8f57f4-1451-4aed-bcaa-07be94d3c146,0b0a58f3-099f-4a1e-8fa7-6097fb9f555e/lists/1011b9bb-b822-4747-a10b-b3e1763ddcd4/items?$expand=fields&$select=id"
+      )
+      .version("v1.0")
       .get();
-  
+
     // Group the data by department
-    const groupedData: { [department: string]: string[] } = {};
+    const groupedData: { [department: string]: { persons: string[]; content: string } } = {};
     for (let item of response.value) {
       const department = item.fields.Department;
       const title = item.fields.Title;
       if (!groupedData[department]) {
-        groupedData[department] = [];
+        groupedData[department] = { persons: [""], content: "" };
       }
-      groupedData[department].push(title);
+      groupedData[department].persons.push(title);
     }
-  
+
+
     return groupedData;
   }
-  
+
+
   public async render(): Promise<void> {
     const data = await this._fetchSharePointData();
-  
-    let departmentList = '';
-  for (let department in data) {
-    departmentList += `<ul><h1>${department}</h1>`;
-    for(let title of data[department]){
-      departmentList += `<li>${title}</li>`;
+
+
+    let departmentList = "";
+    for (let department in data) {
+      // departmentList += `<ul><h1>${department}</h1>`;
+      for (let person of data[department].persons) {
+        data[department].content += `<li>${person}</li>`;
+      }
+      // data[department].content += `</ul>`;
     }
-    departmentList += `</ul>`;
-  }
-  
+
+
     this.domElement.innerHTML = `
     <section>
     <div class="container">
@@ -53,7 +60,7 @@ export default class HelloWorldWebPart extends BaseClientSideWebPart<IHelloWorld
         <a href="#">
           <ul>
             <h1>Directie</h1>
-            <li>Jeroen de bonth</li>
+            ${data["Directie"].content}
           </ul>
         </a>
       </div>
@@ -62,6 +69,7 @@ export default class HelloWorldWebPart extends BaseClientSideWebPart<IHelloWorld
           <section class="box2 level-5">
             <a href="https://vitsolutionseu.sharepoint.com/sites/Marketing" target="_blank">
              ${departmentList}
+             ok
             </a>
           </section>
         </li>
@@ -215,10 +223,11 @@ export default class HelloWorldWebPart extends BaseClientSideWebPart<IHelloWorld
     </section>`;
   }
 
-  protected onInit(): Promise<void> {
-    SPComponentLoader.loadCss('sites/IntranetISO9001/SiteAssets/style.css'); return super.onInit();
-  }
 
+  protected onInit(): Promise<void> {
+    SPComponentLoader.loadCss("/sites/Seco/SiteAssets/style.css");
+    return super.onInit();
+  }
 
 
   // private _getEnvironmentMessage(): Promise<string> {
@@ -240,54 +249,58 @@ export default class HelloWorldWebPart extends BaseClientSideWebPart<IHelloWorld
   //             throw new Error('Unknown host');
   //         }
 
+
   //         return environmentMessage;
   //       });
   //   }
 
+
   //   return Promise.resolve(this.context.isServedFromLocalhost ? strings.AppLocalEnvironmentSharePoint : strings.AppSharePointEnvironment);
   // }
+
 
   protected onThemeChanged(currentTheme: IReadonlyTheme | undefined): void {
     if (!currentTheme) {
       return;
     }
 
+
     // this._isDarkTheme = !!currentTheme.isInverted;
-    const {
-      semanticColors
-    } = currentTheme;
+    const { semanticColors } = currentTheme;
+
 
     if (semanticColors) {
-      this.domElement.style.setProperty('--bodyText', semanticColors.bodyText || null);
-      this.domElement.style.setProperty('--link', semanticColors.link || null);
-      this.domElement.style.setProperty('--linkHovered', semanticColors.linkHovered || null);
+      this.domElement.style.setProperty("--bodyText", semanticColors.bodyText || null);
+      this.domElement.style.setProperty("--link", semanticColors.link || null);
+      this.domElement.style.setProperty("--linkHovered", semanticColors.linkHovered || null);
     }
-
   }
+
 
   protected get dataVersion(): Version {
-    return Version.parse('1.0');
+    return Version.parse("1.0");
   }
+
 
   protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
         {
           header: {
-            description: strings.PropertyPaneDescription
+            description: strings.PropertyPaneDescription,
           },
           groups: [
             {
               groupName: strings.BasicGroupName,
               groupFields: [
-                PropertyPaneTextField('description', {
-                  label: strings.DescriptionFieldLabel
-                })
-              ]
-            }
-          ]
-        }
-      ]
+                PropertyPaneTextField("description", {
+                  label: strings.DescriptionFieldLabel,
+                }),
+              ],
+            },
+          ],
+        },
+      ],
     };
   }
 }
