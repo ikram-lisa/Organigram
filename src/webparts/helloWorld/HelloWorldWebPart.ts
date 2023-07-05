@@ -216,7 +216,7 @@ export default class HelloWorldWebPart extends BaseClientSideWebPart<IHelloWorld
   }
 
   protected onInit(): Promise<void> {
-    SPComponentLoader.loadCss('/sites/Seco/SiteAssets/style.css'); return super.onInit();
+    SPComponentLoader.loadCss('sites/IntranetISO9001/SiteAssets/style.css'); return super.onInit();
   }
 
 
